@@ -1,0 +1,17 @@
+# SO-101 の関節定義。関節名・順序・単位・上下限はここが唯一の正本で、
+# tests/test_robot_config.py が URDF (vendor/SO-ARM100) との一致を検証する。
+# 順序は LeRobot SO101 と同じ (action / observation.state の次元順になる)。
+robot_id: so101
+units: radians            # グリッパー含め全関節ラジアン。LeRobot 標準の degrees/0-100 とは別
+urdf: vendor/SO-ARM100/Simulation/SO101/so101_new_calib.urdf
+base_link: base_link
+end_effector_link: gripper_frame_link
+joints:
+  - {name: shoulder_pan,  lower: -1.91986, upper: 1.91986, vel_limit: 2.0}
+  - {name: shoulder_lift, lower: -1.74533, upper: 1.74533, vel_limit: 2.0}
+  - {name: elbow_flex,    lower: -1.69,    upper: 1.69,    vel_limit: 2.0}
+  - {name: wrist_flex,    lower: -1.65806, upper: 1.65806, vel_limit: 2.5}
+  - {name: wrist_roll,    lower: -2.74385, upper: 2.84121, vel_limit: 3.0}
+  - {name: gripper,       lower: -0.174533, upper: 1.74533, vel_limit: 3.0}
+# 起動・リセット時の姿勢 (作業台に干渉しない折り畳み気味の姿勢)。FK で妥当性を確認すること。
+home: [0.0, -1.0, 1.0, 0.6, 0.0, 0.0]

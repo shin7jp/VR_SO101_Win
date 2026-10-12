@@ -1,0 +1,19 @@
+# Open Door: ヒンジ付きドアのハンドルを引いて/押して目標角度以上に開く。
+task_id: open_door
+name: Open Door
+description: ドアのハンドルを把持して引き、目標角度以上まで開く
+instruction: "open the door by pulling the handle"
+fps: 25               # 物理 dt=4ms×10。1/fps と dt が整数 ns になる値だけ使う (30 だと cam 更新位相がずれる)
+max_steps: 750
+camera: {name: front, width: 640, height: 480, hfov: 1.2, pose: [0.22, -0.42, 0.28, 0.0, 0.55, 1.5708]}
+scene:
+  door: {width: 0.16, height: 0.14, thickness: 0.012, hinge_xy: [0.22, -0.10], damping: 0.02, friction: 0.005}
+  handle: {peg_radius: 0.006, peg_length: 0.085, head_radius: 0.014, head_thickness: 0.008, grasp_offset: 0.045, edge_offset: 0.03, height: 0.035}   # 頭付きの水平ペグ (頭の裏に顎を回して引く)
+randomize:
+  door_hinge_xy: {x: [0.21, 0.225], y: [-0.12, -0.08]}
+implemented: true
+home: [-0.9, -1.0, 1.0, 0.6, 0.0, 0.0]   # 腕をドア板の外 (y>0 側) へ逃がす。home 姿勢のまま板に食い込むと物理が破綻する (実測)
+success:
+  type: open_door
+  target_angle: 0.6        # [rad] 約 34°
+  settle_steps: 10

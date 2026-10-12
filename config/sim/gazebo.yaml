@@ -1,0 +1,18 @@
+# Gazebo / ROS 2 側の名前・型を集約。実機モデルやブリッジ構成が変わったらここだけ直す。
+# (Humble + Fortress の組。Harmonic 系は gz.msgs.* になるので型文字列が変わる)
+world: so101_world
+robot_model: so101
+render_engine: ogre        # ogre2 は WSL2(D3D12 GL) で GenerateHwMipmaps が落ちる。docs/TROUBLESHOOTING.md 参照
+bridge_port: 9100          # WSL 側 TCP サーバー (Windows から localhost:9100)
+substeps: 10               # 制御 1 周期あたりの物理ステップ数
+topics:                    # {world} {robot} {joint} {camera} は展開される
+  clock:        {ros: /clock,                                   ros_type: rosgraph_msgs/msg/Clock,       gz_type: ignition.msgs.Clock,   dir: gz2ros}
+  camera:       {ros: "/camera/{camera}",                       ros_type: sensor_msgs/msg/Image,         gz_type: ignition.msgs.Image,   dir: gz2ros}
+  joint_states: {ros: "/world/{world}/model/{robot}/joint_state", ros_type: sensor_msgs/msg/JointState,    gz_type: ignition.msgs.Model,   dir: gz2ros}
+  poses:        {ros: "/world/{world}/dynamic_pose/info",       ros_type: tf2_msgs/msg/TFMessage,        gz_type: ignition.msgs.Pose_V,  dir: gz2ros}
+  joint_cmd:    {ros: "/{robot}/cmd/{joint}",                   ros_type: std_msgs/msg/Float64,          gz_type: ignition.msgs.Double,  dir: ros2gz}
+services:
+  control:      {name: "/world/{world}/control",   ros_type: ros_gz_interfaces/srv/ControlWorld,   gz_req: ignition.msgs.WorldControl,   gz_rep: ignition.msgs.Boolean}
+  create:       {name: "/world/{world}/create",    ros_type: ros_gz_interfaces/srv/SpawnEntity,    gz_req: ignition.msgs.EntityFactory,  gz_rep: ignition.msgs.Boolean}
+  remove:       {name: "/world/{world}/remove",    ros_type: ros_gz_interfaces/srv/DeleteEntity,   gz_req: ignition.msgs.Entity,         gz_rep: ignition.msgs.Boolean}
+  set_pose:     {name: "/world/{world}/set_pose",  ros_type: ros_gz_interfaces/srv/SetEntityPose,  gz_req: ignition.msgs.Pose,           gz_rep: ignition.msgs.Boolean}

@@ -1,0 +1,11 @@
+# 未検証。sim (Gazebo ブリッジ) と api (Web + ACT) を分離する。
+services:
+  sim:
+    build: {context: .., dockerfile: docker/Dockerfile.sim}
+    ports: ["9100:9100"]
+  api:
+    build: {context: .., dockerfile: docker/Dockerfile.api}
+    depends_on: [sim]
+    ports: ["8000:8000"]
+    volumes: ["../data:/data"]
+    deploy: {resources: {reservations: {devices: [{capabilities: [gpu]}]}}}
