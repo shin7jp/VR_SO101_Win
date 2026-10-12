@@ -44,17 +44,29 @@ cd E:\claude\VR_SO101_ACT_Win_Web
 uv venv --python 3.12 .venv
 uv pip install --python .venv\Scripts\python.exe "torch==2.11.0" "torchvision==0.26.0" --index-url https://download.pytorch.org/whl/cu128
 uv pip install --python .venv\Scripts\python.exe -e ".[test]"
-uv pip install --python .venv\Scripts\python.exe "lerobot[training]==0.6.1" trimesh scipy coacd
+uv pip install --python .venv\Scripts\python.exe "lerobot[training]==0.6.1" trimesh scipy coacd fast-simplification rtree
 ```
 
-(`trimesh` / `scipy` / `coacd` は SO-101 モデルの衝突メッシュ生成 `sim/tools/build_model.py` 用。)
+(`trimesh` / `scipy` / `coacd` は SO-101 モデルの衝突メッシュ生成 `sim/tools/build_model.py` 用、
+`fast-simplification` / `rtree` は Web 3D 表示用 STL の軽量化 `sim/tools/decimate_visuals.py` 用。)
 
 SO-101 の Gazebo モデルを生成 (vendor の URDF → SDF + 凸包衝突メッシュ。生成物はコミット不要):
 
 ```powershell
 git clone https://github.com/TheRobotStudio/SO-ARM100.git vendor/SO-ARM100     # 未取得なら
-.\.venv\Scripts\python.exe sim\tools\build_model.py
+.\.venv\Scripts\python.exe sim\tools\build_model.py      # 凸分解 (coacd) を含むので 20 分前後かかる
 ```
+
+`build_model.py` の出力 (`sim/models/so101/`) が無いと Gazebo ブリッジは起動できない。`.gitignore` で除外してあるので、clone 直後は必ずこの手順が要る。
+
+**(任意) Web 3D 表示用 STL の軽量化**。元の STL (約 38 万三角形) を、外郭のずれ ≤0.5 mm の範囲で間引く:
+
+```powershell
+.\.venv\Scripts\python.exe sim\tools\decimate_visuals.py   # sim/models/so101_web/ に出力 (数分〜十数分)
+```
+
+出力が無ければ API は元の STL を配信するので、動作はする (描画が少し重いだけ)。Gazebo のカメラ描画用メッシュ (`sim/models/so101/`) は
+学習画像の元なので、この軽量化では変えない。許容のずれは環境変数 `VRSO101_DECIMATE_TOL_MM` で変える (下の表)。
 
 ## 3. フロントエンド
 
@@ -93,6 +105,20 @@ npm run build        # frontend/dist (FastAPI が配信)
 | `VRSO101_BRIDGE_PORT` | `9100` | WSL ブリッジのポート |
 | `VRSO101_TOKEN` | (なし) | 設定すると変更系 API と WebSocket にトークンが必要 (LAN 公開時) |
 | `VRSO101_STEP_TIMEOUT` | `30` | ブリッジ内の 1 ステップ観測待ちの上限 [秒] |
+| `VRSO101_BRIDGE_HOST` | `localhost` | WSL ブリッジの接続先ホスト (Windows から WSL の localhost が通らない構成のとき) |
+| `HF_HUB_OFFLINE` | `1` | 学習ジョブは既定でこれを付けて起動する (外部送信なし)。`.env.example` 参照 |
+| `VRSO101_E2E` | (なし) | `1` で実 Gazebo + 実 ACT の E2E テスト (`tests/test_e2e_gazebo.py`) を実行 |
+
+モデル生成時だけ使う変数 (`build_model.py` / `decimate_visuals.py`):
+
+| 変数 | 既定 | 意味 |
+|---|---|---|
+| `VRSO101_JAW_HULLS` | `8` | 把持面 (顎) の凸分解の最大個数 |
+| `VRSO101_HULL_VERTS` | `96` | 衝突用凸包 1 個あたりの最大頂点数。元の STL は凸包でも 1000 頂点超になり、物体を掴んで運ぶ間の物理が約 11 倍遅くなるので間引く |
+| `VRSO101_DECIMATE_TOL_MM` | `0.5` | Web 3D 表示用 STL の軽量化で許す外郭のずれ [mm] |
+
+診断用 (通常は設定しない。WSL 側ブリッジ / ベンチ): `VRSO101_SIM_LOG_DIR` (Gazebo のログ置き場、既定 `/tmp/vrso101`)、
+`VRSO101_STEP_MODE` (`run_to` | `multi_step`)、`VRSO101_SKIP` (読み飛ばすトピック。例 `poses,joint_states`)。
 
 ## 5. テスト
 
@@ -109,3 +135,12 @@ cd frontend; npx tsc --noEmit                                    # フロント�
 
 `docker/` に Gazebo ブリッジ (Ubuntu 22.04 + Humble + Fortress) と Web バックエンドの Dockerfile / compose がある。
 この開発環境には Docker が無く、ビルド・実行は確認していない。WSLg / GPU を渡す設定は環境依存。
+
+**ビルド前に必要なもの**: Dockerfile は次をコピーするが、いずれも `.gitignore` で除外されているので、clone しただけでは `docker build` が通らない。
+先にホストで用意する (どれも本書の手順 2・3):
+
+| コピーされるもの | 用意の方法 |
+|---|---|
+| `vendor/SO-ARM100/Simulation/SO101` | `git clone https://github.com/TheRobotStudio/SO-ARM100.git vendor/SO-ARM100` |
+| `sim/models/so101` (`COPY sim` に含まれる) | `python sim\tools\build_model.py` |
+| `frontend/dist` (Dockerfile.api) | `cd frontend; npm install; npm run build` |

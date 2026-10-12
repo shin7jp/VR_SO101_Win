@@ -1,0 +1,4 @@
+# WSL の bash で実行するスクリプトは常に LF にする。
+# Windows の core.autocrlf=true で clone すると CRLF になり、SETUP.md の
+# `wsl -- bash scripts/wsl/*.sh` が「行末の CR を解釈できない」エラーで失敗するのを防ぐ。
+*.sh text eol=lf
