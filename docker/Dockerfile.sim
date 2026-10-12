@@ -1,0 +1,18 @@
+# Gazebo ブリッジ (ROS 2 Humble + Gazebo Fortress)。未検証: この開発環境に Docker が無い。
+# 描画は ogre (v1) のヘッドレスのみ動作を確認 (WSL2)。コンテナでは GPU/EGL の渡し方が環境依存。
+FROM ubuntu:22.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y curl gnupg lsb-release software-properties-common \
+ && add-apt-repository -y universe \
+ && curl -fsSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg \
+ && echo "deb [signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu jammy main" > /etc/apt/sources.list.d/ros2.list \
+ && apt-get update && apt-get install -y ros-humble-ros-base ros-humble-ros-gz python3-yaml python3-numpy \
+    mesa-utils libgl1-mesa-dri xvfb ffmpeg && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY src/vrso101 /app/src/vrso101
+COPY sim /app/sim
+COPY config /app/config
+COPY vendor/SO-ARM100/Simulation/SO101 /app/vendor/SO-ARM100/Simulation/SO101
+ENV PYTHONUTF8=1 PYTHONUNBUFFERED=1
+EXPOSE 9100
+CMD ["bash", "-lc", "source /opt/ros/humble/setup.bash && python3 /app/sim/bridge/server.py --host 0.0.0.0"]

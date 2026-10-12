@@ -1,0 +1,14 @@
+# Web バックエンド (FastAPI + LeRobot + PyTorch)。未検証。GPU 学習には nvidia-container-toolkit が必要。
+FROM python:3.12-slim
+WORKDIR /app
+RUN pip install --no-cache-dir torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
+COPY pyproject.toml /app/
+COPY src /app/src
+COPY config /app/config
+COPY sim /app/sim
+COPY vendor/SO-ARM100/Simulation/SO101 /app/vendor/SO-ARM100/Simulation/SO101
+COPY frontend/dist /app/frontend/dist
+RUN pip install --no-cache-dir -e . "lerobot[training]==0.6.1"
+ENV PYTHONUTF8=1 PYTHONUNBUFFERED=1 VRSO101_DATA_DIR=/data VRSO101_BRIDGE_HOST=sim
+EXPOSE 8000
+CMD ["python", "-m", "uvicorn", "vrso101.api.app:get_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

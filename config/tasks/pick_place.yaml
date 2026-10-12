@@ -1,0 +1,21 @@
+# Pick and Place: 立方体を把持して目標ゾーンへ置く。
+# 座標は world 系 (ロボット base_link が原点、作業台天面が z=0、x 前方、y 左)。
+task_id: pick_place
+name: Pick and Place
+description: 立方体を把持し、床面に描かれた目標ゾーンの中へ置く
+instruction: "pick up the cube and place it in the target zone"
+fps: 25               # 物理 dt=4ms×10。1/fps と dt が整数 ns になる値だけ使う (30 だと cam 更新位相がずれる)
+max_steps: 500            # 20 秒 @25fps
+camera: {name: front, width: 640, height: 480, hfov: 1.2, pose: [0.22, -0.42, 0.28, 0.0, 0.55, 1.5708]}
+scene:
+  cube: {size: 0.03, mass: 0.02, color: [0.9, 0.2, 0.2, 1.0]}
+  target: {center: [0.20, 0.17], half_extent: 0.045}
+randomize:                # シードで再現可能。到達可能域に収まる範囲に限定
+  cube_xy: {x: [0.17, 0.27], y: [-0.12, 0.05]}
+  cube_yaw: [-0.8, 0.8]
+success:
+  type: pick_place
+  place_tolerance: 0.035   # 目標中心からの XY 許容 [m] (ゾーン半幅から導出する場合は小さい方)
+  rest_height_tol: 0.012   # 立方体中心高さ = size/2 ± tol のとき「置かれている」
+  lift_threshold: 0.04     # 一度でもこの高さまで持ち上げたこと (最初から目標内の誤成功を防ぐ)
+  settle_steps: 15         # 条件を連続で満たすステップ数

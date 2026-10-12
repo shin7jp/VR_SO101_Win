@@ -1,0 +1,101 @@
+:root {
+  --bg: #0f1318; --panel: #171d24; --panel2: #1e262f; --line: #2a3440; --text: #e4e9ef; --muted: #8a97a6;
+  --accent: #3aa0ff; --ok: #34c759; --warn: #f0a030; --err: #ff5a52; --rec: #ff3b30; --info: #5ac8fa;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, "Hiragino Sans", "Yu Gothic UI", "Segoe UI", sans-serif; overscroll-behavior: none; }
+button, select, input { font: inherit; color: inherit; }
+button { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; min-height: 38px; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button.primary { background: #1b5fa8; border-color: #2d7fd4; }
+button.danger { background: #6b1f1b; border-color: #a33; }
+button.ghost { background: transparent; border-color: transparent; padding: 4px 8px; min-height: 28px; }
+button.big { min-height: 54px; min-width: 64px; font-size: 16px; user-select: none; touch-action: none; }
+button.big.on { background: #1b5fa8; border-color: var(--accent); }
+select, input[type=text], input[type=number], input[type=password] { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; min-height: 36px; }
+input[type=range] { accent-color: var(--accent); flex: 1; min-width: 80px; }
+.mono { font-family: ui-monospace, Consolas, monospace; }
+.muted { color: var(--muted); font-size: 12px; }
+h2 { margin: 0 0 12px; font-size: 18px; } h3 { margin: 14px 0 8px; font-size: 14px; color: var(--muted); font-weight: 600; }
+
+.app { display: grid; grid-template-columns: 200px minmax(0, 1fr); height: 100%; }
+.nav { background: var(--panel); border-right: 1px solid var(--line); padding: 10px 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.nav .brand { font-weight: 700; padding: 6px 10px 12px; color: var(--accent); }
+.nav a { padding: 9px 12px; border-radius: 8px; color: var(--text); text-decoration: none; cursor: pointer; display: block; }
+.nav a.on { background: #1b3a5c; }
+.nav a:hover { background: var(--panel2); }
+.main { min-width: 0; overflow: auto; padding: 16px; padding-bottom: calc(16px + var(--safe-b)); }
+.topbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.topbar .grow { flex: 1; }
+
+.card { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 12px; }
+.row { display: flex; gap: 10px; align-items: center; margin: 6px 0; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.kv > div { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 4px 0; gap: 12px; }
+.kv span { color: var(--muted); }
+.err-line { color: var(--err); font-size: 12px; margin-top: 6px; word-break: break-word; }
+.badge { padding: 2px 10px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); white-space: nowrap; }
+.badge.ok { color: var(--ok); border-color: var(--ok); } .badge.err { color: var(--err); border-color: var(--err); }
+.badge.warn { color: var(--warn); border-color: var(--warn); } .badge.info { color: var(--info); border-color: var(--info); }
+.badge.rec { color: #fff; background: var(--rec); border-color: var(--rec); animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .6; } }
+.banner { padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; }
+.banner.warn { background: #3a2c10; border: 1px solid var(--warn); color: #ffd28a; }
+.banner.err { background: #3a1513; border: 1px solid var(--err); color: #ffb3ad; }
+.banner.rec { background: #3a1010; border: 1px solid var(--rec); color: #fff; font-weight: 700; }
+
+.viewport { position: relative; background: #10151b; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); min-height: 260px; }
+.viewport canvas { display: block; width: 100% !important; height: 100% !important; }
+.vp-err { position: absolute; top: 8px; left: 8px; right: 8px; background: #3a1513; padding: 6px 10px; border-radius: 6px; }
+.camera { position: relative; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); aspect-ratio: 4 / 3; }
+.camera img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cam-label { position: absolute; top: 6px; left: 8px; font-size: 11px; background: #000a; padding: 1px 8px; border-radius: 4px; z-index: 1; }
+.cam-err { display: flex; height: 100%; align-items: center; justify-content: center; text-align: center; padding: 12px; color: var(--muted); flex-direction: column; gap: 8px; }
+
+.joints .jrow { display: grid; grid-template-columns: 110px 1fr 48px; gap: 8px; align-items: center; margin: 3px 0; }
+.jbar { height: 8px; background: var(--panel2); border-radius: 4px; overflow: hidden; } .jfill { height: 100%; background: var(--accent); } .jfill.warn { background: var(--warn); }
+.jn { font-size: 12px; color: var(--muted); } .jv { font-size: 12px; text-align: right; }
+.pbar { height: 8px; background: var(--panel2); border-radius: 4px; overflow: hidden; margin: 6px 0; } .pbar div { height: 100%; background: var(--accent); transition: width .3s; }
+
+.teleop .dpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+.teleop .hint { font-size: 11px; color: var(--muted); }
+.recbtn { min-height: 64px; font-size: 18px; font-weight: 700; width: 100%; }
+.recbtn.start { background: #8a1f1b; border-color: var(--rec); } .recbtn.stop { background: #2b3440; border-color: var(--rec); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+tr.sel { background: #1b3a5c; } tr.excl { opacity: .5; } tbody tr { cursor: pointer; } tbody tr:hover { background: var(--panel2); }
+.chart { width: 100%; height: auto; background: var(--panel2); border-radius: 8px; }
+.toasts { position: fixed; right: 12px; bottom: calc(12px + var(--safe-b)); display: flex; flex-direction: column; gap: 8px; z-index: 50; max-width: min(92vw, 420px); }
+.toast { padding: 10px 14px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); box-shadow: 0 4px 16px #0008; cursor: pointer; }
+.toast.error { border-color: var(--err); } .toast.ok { border-color: var(--ok); }
+video { width: 100%; border-radius: 10px; background: #000; max-height: 60vh; }
+.collapsible > button { width: 100%; text-align: left; }
+.tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; background: var(--panel2); border: 1px solid var(--line); margin-right: 4px; }
+
+.split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; align-items: start; }
+.split .vp-col { min-width: 0; }
+.vp-tall { height: min(62vh, 640px); }
+
+/* iPad: 3D 領域を広く、状態パネルは折りたたみ */
+@media (max-width: 1100px) { .split { grid-template-columns: minmax(0, 1fr); } .vp-tall { height: 56vh; } }
+/* iPhone: ナビを下タブへ。ロボット表示・主要操作・録画状態を優先 */
+@media (max-width: 720px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+  .nav { grid-row: 2; flex-direction: row; overflow-x: auto; border-right: 0; border-top: 1px solid var(--line); padding: 4px 4px calc(4px + var(--safe-b)); gap: 4px; }
+  .nav .brand { display: none; } .nav a { white-space: nowrap; padding: 10px 12px; }
+  .main { padding: 10px; } .vp-tall { height: 42vh; } .grid2 { grid-template-columns: 1fr; }
+  h2 { font-size: 16px; }
+}
+
+/* キー操作の表示 (押している間ハイライト) */
+.teleop .keymap { margin-top: 8px; }
+.teleop .krow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+.teleop .ktitle { width: 84px; font-size: 12px; color: var(--muted); }
+.teleop kbd { border: 1px solid var(--border, #3a4658); border-bottom-width: 3px; border-radius: 6px; padding: 3px 8px; font: 12px/1.4 ui-monospace, monospace; background: #1a2230; user-select: none; }
+.teleop kbd.on { background: #1b5fa8; border-color: var(--accent); color: #fff; }
