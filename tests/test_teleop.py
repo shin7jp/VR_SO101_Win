@@ -136,3 +136,22 @@ def test_move_toward_follows_target_with_step_limit():
     for _ in range(40):
         c.move_toward(goal, max_step)
     assert np.linalg.norm(kin.fk(c.q)[:3, 3] - goal) < 0.01
+
+
+def test_vr_follows_continuously_and_tracking_jump_rebases():
+    """常時追従: 追跡が飛んだ (ロスト → 復帰など) 周期はロボットを動かさず、新しい位置を基準に追従を続ける。"""
+    spec = load_robot_spec()
+    kin = Kinematics(spec)
+    c = TeleopController(spec, kin, rate_hz=25, smoothing=0.0)
+    c.pos_priority = True
+    c.update_vr([0, 1.2, -0.3], IDENT_Q, deadman=True)          # 追従開始 (基準)
+    for i in range(1, 6):
+        c.update_vr([0, 1.2, -0.3 - 0.004 * i], IDENT_Q, deadman=True)
+    q_before = c.q.copy()
+    c.update_vr([0.8, 1.9, -1.5], IDENT_Q, deadman=True)        # 1 周期で 1m 以上の飛び
+    assert np.allclose(c.q, q_before)                           # 飛ばない (保持)
+    assert c._anchor is None                                    # 基準は取り直し待ち
+    c.update_vr([0.8, 1.9, -1.5], IDENT_Q, deadman=True)        # 新しい位置で基準を取り直す
+    for i in range(1, 6):
+        out = c.update_vr([0.8, 1.9, -1.5 - 0.004 * i], IDENT_Q, deadman=True)
+    assert out.status.value in ("tracking", "workspace_clamped")   # 追従が再開している

@@ -9,7 +9,7 @@ import { useStore } from "../lib/store";
 
 export default function VrTeleop() {
   const [xr, setXr] = useState<XrSupport | null>(null);
-  const [vr, setVr] = useState({ active: false, deadman: false, connected: false });
+  const [vr, setVr] = useState({ active: false, following: false, paused: false, connected: false });
   const [yawDeg, setYawDeg] = useState(0);
   const [scale, setScale] = useState(1);
   const [speed, setSpeed] = useState(1);
@@ -31,7 +31,7 @@ export default function VrTeleop() {
         <button className="primary" disabled={!xr?.supported || !status?.task_id} onClick={() => act(() => apiRef.current!.enterVr())}>VR 開始</button>
         {xr && !xr.supported && <span className="muted">⚠ {xr.reason}</span>}
         {xr?.supported && <Badge kind="ok">WebXR 対応</Badge>}
-        {vr.active && <Badge kind={vr.deadman ? "rec" : "warn"}>{vr.deadman ? "デッドマン ON (追従中)" : "グリップを握ると追従"}</Badge>}
+        {vr.active && <Badge kind={vr.following ? "rec" : "warn"}>{vr.following ? "追従中" : vr.paused ? "一時停止中 (グリップを離すと追従)" : "コントローラ待ち"}</Badge>}
         <span className="grow" />
         <Badge kind="info">端末: {dev === "phone" ? "iPhone" : dev === "tablet" ? "iPad/タブレット" : "PC"} — {xr?.supported ? "VR + PC 操作" : "PC/タッチ操作モード"}</Badge>
         <button className={dragMode === "ee" ? "primary" : ""} onClick={() => setDragMode(dragMode === "ee" ? "camera" : "ee")}>ドラッグ: {dragMode === "ee" ? "EE" : "視点"}</button>
@@ -40,7 +40,7 @@ export default function VrTeleop() {
         <div className="vp-col vp-tall"><Viewport apiRef={apiRef} dragMode={dragMode} onVrState={setVr} /></div>
         <div>
           <div className="card"><h3>VR 操作 (右コントローラ)</h3>
-            <div className="muted">グリップ=デッドマン (離すと即停止・クラッチ方式なので急に飛ばない) / トリガー=グリッパー / A・X ボタン=コントローラの向きを「ロボットの前」に再設定</div>
+            <div className="muted">手先がコントローラーの動きに常時追従 (没入した瞬間のポーズが基準なので飛ばない) / グリップ=一時停止 (握っている間は止まり、離した位置で基準を取り直す。持ち替え用) / トリガー=グリッパー / A・X ボタン=コントローラの向きを「ロボットの前」に再設定</div>
             <div className="row"><b>向き補正</b><input type="number" value={yawDeg} onChange={(e) => setYawDeg(+e.target.value)} style={{ width: 80 }} />°
               <b>移動スケール</b><input type="range" min={0.2} max={2} step={0.1} value={scale} onChange={(e) => setScale(+e.target.value)} /><span className="mono">{scale.toFixed(1)}×</span></div>
             <button onClick={calibrate}>適用</button>
