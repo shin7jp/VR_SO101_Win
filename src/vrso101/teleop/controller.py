@@ -1,8 +1,9 @@
 """テレオペ制御: 入力 (VR/PC/タッチ) → EE 目標 → IK → 制限・平滑化 → 関節目標値。
 
 入力源が違っても IK・制限・平滑化・安全停止は 1 か所を通す (VR だけ安全で PC は素通り、を避ける)。
-VR は「クラッチ方式」: デッドマン (グリップ) を握った瞬間のコントローラ/EE 姿勢を基準にし、
-以降は相対移動だけを反映する。ロボットが突然コントローラ位置へ飛ぶのを防ぐため。
+VR は「相対追従」: 追従を始めた瞬間のコントローラ/EE 姿勢を基準にし、以降はコントローラの動きだけを反映する
+(ロボットが突然コントローラ位置へ飛ぶのを防ぐため)。追従の可否は呼び出し側 (deadman 引数) が決め、
+常時追従でも、グリップでの一時停止でも、解除すれば基準を取り直す。追跡の飛び (VR_JUMP_M 超) も同様に取り直す。
 """
 from __future__ import annotations
 
@@ -15,6 +16,9 @@ import numpy as np
 from ..robot.joints import RobotSpec
 from ..robot.kinematics import IKResult, Kinematics
 from .transform import FrameConfig, xr_position_to_robot, xr_rotation_to_robot
+
+
+VR_JUMP_M = 0.30   # VR コントローラ位置が 1 周期でこれ以上動いたら追跡の飛びとみなし、基準を取り直す [m] (手の最大速度の十分上)
 
 
 class Status(str, Enum):
@@ -61,6 +65,7 @@ class TeleopController:
         self.q = spec.home.copy()                                 # 現在の指令関節 (ここから速度制限を掛ける)
         self.status = Status.IDLE
         self._anchor: tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None = None
+        self._prev_vr_p: np.ndarray | None = None                 # 直前の VR コントローラ位置 (追跡の飛びの検出用)
         self._last_input = clock()
         self._ee_target = kin.fk(self.q)
 
@@ -77,6 +82,7 @@ class TeleopController:
     def release(self) -> None:
         """デッドマン解除: 即座に追従を止め、現在の指令値を保持する。"""
         self._anchor = None
+        self._prev_vr_p = None
         self.status = Status.IDLE
 
     def check_stale(self) -> bool:
@@ -89,19 +95,26 @@ class TeleopController:
 
     # ---- 入力: VR コントローラ ----
     def update_vr(self, pos_xr, quat_xr, *, deadman: bool, gripper: float | None = None) -> TeleopOutput:
+        """deadman=True の間、コントローラの動きに手先が追従する (False なら保持して基準を捨てる)。"""
         self._last_input = self._clock()
         if not deadman:
             self.release()
             return self._emit(None, gripper)
         p_r = xr_position_to_robot(pos_xr, self.frame)
         R_r = xr_rotation_to_robot(quat_xr, self.frame)
-        if self._anchor is None:   # 握った瞬間を基準にする
+        # 常時追従ではグリップという安全弁が無いので、追跡の飛び (ロスト → 復帰など) では追従せず基準を取り直す
+        jumped = self._anchor is not None and self._prev_vr_p is not None and float(np.linalg.norm(p_r - self._prev_vr_p)) > VR_JUMP_M
+        self._prev_vr_p = p_r
+        if jumped:
+            self._anchor = None
+            return self._emit(None, gripper)
+        if self._anchor is None:   # 追従を始めた瞬間を基準にする
             T = self.kin.fk(self.q)
             self._anchor = (p_r, R_r, T[:3, 3].copy(), T[:3, :3].copy())
         p0, R0, pe0, Re0 = self._anchor
         target = np.eye(4)
         target[:3, 3] = pe0 + (p_r - p0)
-        # コントローラの回転変化量をクラッチ時の EE 姿勢へ左から掛ける
+        # コントローラの回転変化量を、追従開始時の EE 姿勢へ左から掛ける
         target[:3, :3] = (R_r @ R0.T) @ Re0 if self.frame.rot_scale == 1.0 else _scale_rot(R_r @ R0.T, self.frame.rot_scale) @ Re0
         return self._emit(target, gripper)
 

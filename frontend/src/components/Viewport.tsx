@@ -14,7 +14,7 @@ export type ViewportApi = { enterVr: () => Promise<void>; vrActive: boolean };
 type Props = {
   height?: number | string;
   dragMode: "camera" | "ee";           // EE: 左ドラッグ/1 本指で EE を動かす
-  onVrState?: (s: { active: boolean; deadman: boolean; connected: boolean }) => void;
+  onVrState?: (s: { active: boolean; following: boolean; paused: boolean; connected: boolean }) => void;
   apiRef?: React.MutableRefObject<ViewportApi | null>;
   vrScale?: number;
 };
@@ -174,8 +174,8 @@ export default function Viewport({ height = "100%", dragMode, onVrState, apiRef 
       g.fillStyle = rec ? "#ff4a40" : "#9fe0a8";
       g.fillText(rec ? `● REC ${rec.frames}f ${rec.seconds}s` : (live?.mode === "idle" ? "待機" : String(live?.mode ?? "未接続")), 24, 62);
       g.font = "34px sans-serif";
-      g.fillStyle = deadman ? "#ffd060" : "#889";
-      g.fillText(deadman ? "追従中 (グリップ ON)" : "グリップを握ると追従", 24, 112);
+      g.fillStyle = following ? "#ffd060" : "#889";
+      g.fillText(following ? "追従中 (グリップで一時停止)" : paused ? "一時停止中 (離すと追従)" : "コントローラ待ち", 24, 112);
       g.fillStyle = st.wsState === "open" ? "#9fe0a8" : "#ff7a70";
       g.fillText(`通信: ${st.wsState === "open" ? "OK" : "切断"}  teleop: ${live?.teleop ?? "-"}  ${live?.task_state?.success ? "✔成功" : ""}`, 24, 160);
       hudTex.needsUpdate = true;
@@ -248,10 +248,10 @@ export default function Viewport({ height = "100%", dragMode, onVrState, apiRef 
     const dragTimer = window.setInterval(sendDrag, 40);
 
     // ---- WebXR ----
-    let vrActive = false, deadman = false, calibrating = false;
+    let vrActive = false, following = false, paused = false, vrFrames = 0, calibrating = false;
     const ctrl = [renderer.xr.getController(0), renderer.xr.getController(1)];
     ctrl.forEach((c) => scene.add(c));
-    const reportVr = () => onVrState?.({ active: vrActive, deadman, connected: vrActive });
+    const reportVr = () => onVrState?.({ active: vrActive, following, paused, connected: vrActive });
     const quat = new THREE.Quaternion(), pos = new THREE.Vector3(), fwdV = new THREE.Vector3();
     let lastVrSend = 0;
 
@@ -267,14 +267,19 @@ export default function Viewport({ height = "100%", dragMode, onVrState, apiRef 
       const gp = srcs[idx].gamepad!;
       const c = ctrl[Math.min(idx, 1)];
       const trigger = gp.buttons[0]?.value ?? 0;       // トリガー: グリッパー
-      const grip = gp.buttons[1]?.pressed ?? false;     // グリップ: デッドマン (離せば即停止)
+      const grip = gp.buttons[1]?.pressed ?? false;     // グリップ: 一時停止 (握っている間は追従しない。離した位置で基準を取り直す)
       const aBtn = gp.buttons[4]?.pressed ?? false;     // A/X: キャリブレーション
-      deadman = grip;
       c.matrixWorld.decompose(pos, quat, new THREE.Vector3());
+      // コントローラの動きに常時追従する。ただし (1) 没入直後は追跡が安定するまで待つ、(2) 未追跡のコントローラは
+      // 原点 (0,0,0) にいるので追従しない、(3) グリップを握っている間は一時停止 (持ち替え用)。
+      vrFrames++;
+      const tracked = pos.lengthSq() > 1e-8;
+      paused = grip;
+      following = tracked && vrFrames > 20 && !grip;
       const now = performance.now();
       if (now - lastVrSend > 16) {
         lastVrSend = now;
-        sendWs({ type: "vr", pos: [pos.x, pos.y, pos.z], quat: [quat.x, quat.y, quat.z, quat.w], deadman: grip, gripper: 1 - trigger });
+        sendWs({ type: "vr", pos: [pos.x, pos.y, pos.z], quat: [quat.x, quat.y, quat.z, quat.w], deadman: following, gripper: 1 - trigger });
       }
       if (aBtn && !calibrating) {
         calibrating = true;
@@ -296,9 +301,9 @@ export default function Viewport({ height = "100%", dragMode, onVrState, apiRef 
     const enterVr = async () => {
       const xr = (navigator as any).xr;
       const session = await xr.requestSession("immersive-vr", { optionalFeatures: ["local-floor", "bounded-floor"] });
-      session.addEventListener("end", () => { vrActive = false; deadman = false; applyRigForXr(false); sendWs({ type: "release" }); reportVr(); });
+      session.addEventListener("end", () => { vrActive = false; following = false; paused = false; applyRigForXr(false); sendWs({ type: "release" }); reportVr(); });
       await renderer.xr.setSession(session);
-      vrActive = true; applyRigForXr(true); reportVr();
+      vrFrames = 0; vrActive = true; applyRigForXr(true); reportVr();
     };
     if (apiRef) apiRef.current = { enterVr, get vrActive() { return vrActive; } } as ViewportApi;
 
