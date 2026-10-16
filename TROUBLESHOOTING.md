@@ -28,6 +28,7 @@
   (`LIBGL_ALWAYS_SOFTWARE=1` では null 参照で segfault)。**`ogre` (v1) のヘッドレスは動く**
   (`ign gazebo -s --headless-rendering`、640×480 で ~126 Hz の単純シーン)。`config/sim/gazebo.yaml` の
   `render_engine: ogre`。終了時の segfault は無害 (プロセスを kill したときの既知の挙動)。
+- **カメラ画像がノイズ / 真っ黒 (Intel 内蔵 GPU など NVIDIA 以外)**: WSL2 の Mesa D3D12 経由だとカメラの画素読み出しが壊れる(UHD 770 で確認)。全画素 0 のフレームと、行が崩れたノイズ画像が交互に来る。**フレーム数・解像度・Hz は正常に出る**ので、Gate 0 のフレーム数だけでは気付けず、収録データ・学習データまで壊れたまま溜まる。`scripts/wsl/gl_env.sh` が NVIDIA 以外では `LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe` に切り替える (`VRSO101_GL=hw|sw` で上書き)。`ogre` (v1) ならソフトウェア描画でも正常。代償は遅さ (この環境で 10.5 → 3.8 ticks/s)。`gate0.sh` は画素の標準偏差と隣接画素の差も検査する (`gz_frame_stats.py`)。**切り替え前に収録したエピソード・データセット・モデル・推論動画は壊れているので作り直す**。
 - **カメラ購読者がいないと描画されない**: 無購読で RTF を測ると速く見える。比較は必ず購読中で。
 - **`reset all`/`model_only` を使わない**: `all` は sim 時刻を 0 に戻し、カメラセンサーの次回更新時刻が旧時刻のまま
   残って時刻が追いつくまで**画像が一切出ない**。エピソード初期化は「物体を消す → 腕を位置制御でホームへ戻す → 物体を置く」。
