@@ -11,7 +11,12 @@ echo "== engine=$ENGINE world=$WORLD"
 ign gazebo -s -r --headless-rendering -v 3 "$WORLD" > "$LOG" 2>&1 &
 GZ=$!
 trap 'kill $GZ 2>/dev/null; sleep 1 2>/dev/null; true' EXIT
-sleep 12
+# 固定 sleep だと遅い環境 (初回の D3D12 初期化など) で 0 フレームになるので、最初のフレームが来るまで待つ (最大 90 秒)
+S=$(date +%s)
+until timeout 5 ign topic -e -t /gate0/camera -n 1 2>&1 | grep -q '^width:'; do
+  if [ $(( $(date +%s) - S )) -gt 90 ]; then echo "[NG] 90 秒待ってもカメラのフレームが来ません"; break; fi
+done
+echo "first frame after $(( $(date +%s) - S ))s"
 echo "== topics"; ign topic -l | head -20
 echo "== camera frames in 5s (走行中の実測。Fortress の ign topic に -hz は無いので数える)"
 N=$(timeout 8 ign topic -e -t /gate0/camera -d 5 2>/dev/null | grep -c '^width:' || true)
