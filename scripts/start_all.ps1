@@ -2,6 +2,6 @@
 param([string]$Backend = "gazebo", [int]$Port = 8443, [switch]$NoTls)
 $root = Split-Path -Parent $PSScriptRoot
 if ($Backend -eq "gazebo") { & "$root\scripts\bridge.ps1" start }
-$args2 = @("-Backend", $Backend, "-Port", $Port)
-if ($NoTls) { $args2 += "-NoTls" }
+$args2 = @{ Backend = $Backend; Port = $Port }
+if ($NoTls) { $args2.NoTls = $true }
 & "$root\scripts\serve.ps1" @args2
