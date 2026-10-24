@@ -147,3 +147,11 @@ export function TaskSelect({ value, onChange, onlyImplemented = false }: { value
 }
 
 export { act, fmtSec };
+
+/** ファイルをダウンロードする。<a><button> の入れ子 (HTML として不正) は、ブラウザによってボタンがクリックを受けるだけで
+ *  リンクに遷移しない。ボタンの onClick から一時的なリンクをクリックする。サーバーが Content-Disposition: attachment を返す URL 用。 */
+export function downloadFile(url: string, filename = "") {
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.style.display = "none";
+  document.body.appendChild(a); a.click(); a.remove();
+}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Badge, TaskSelect, act } from "../components/common";
+import { Badge, TaskSelect, act, downloadFile } from "../components/common";
 import { api, fmtSec } from "../lib/api";
 
 export default function VideoGallery() {
@@ -36,7 +36,7 @@ export default function VideoGallery() {
         <div className="card">
           {!sel ? <div className="muted">動画を選択してください</div> : <>
             {sel.saved ? <video key={sel.episode_id} src={url(sel)} controls playsInline loop autoPlay muted /> : <div className="banner err">動画が保存されていません: {sel.save_error}</div>}
-            <div className="row"><a href={url(sel, true)}><button>ダウンロード (MP4)</button></a><button className="danger" onClick={() => del(sel)}>削除</button></div>
+            <div className="row"><button onClick={() => downloadFile(url(sel, true))}>ダウンロード (MP4)</button><button className="danger" onClick={() => del(sel)}>削除</button></div>
             <div className="kv">
               <div><span>結果</span><b>{sel.outcome} ({sel.reason})</b></div>
               <div><span>ポリシー / ckpt</span><b className="mono">{sel.policy?.model_id} / {sel.policy?.checkpoint}</b></div>
