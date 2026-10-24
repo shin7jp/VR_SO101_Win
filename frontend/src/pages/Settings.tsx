@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Badge, act } from "../components/common";
+import { Badge, act, downloadFile } from "../components/common";
 import { api, getToken, setToken } from "../lib/api";
 import { detectXr, deviceClass, XrSupport } from "../lib/xr";
 
@@ -30,7 +30,7 @@ export default function Settings() {
           <h3>API トークン (サーバーが VRSO101_TOKEN を設定している場合)</h3>
           <div className="row"><input type="password" value={token} onChange={(e) => setTok(e.target.value)} /><button onClick={() => { setToken(token); location.reload(); }}>保存</button></div>
           <h3>設定のエクスポート</h3>
-          <a href="/api/settings/export"><button>ロボット/シム/タスク設定を JSON で保存</button></a>
+          <button onClick={() => downloadFile("/api/settings/export")}>ロボット/シム/タスク設定を JSON で保存</button>
         </div>
       </div>
       <div className="card"><b>既知の制約 (README と同じ内容)</b>
